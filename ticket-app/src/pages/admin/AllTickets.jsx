@@ -1,60 +1,108 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
-function AllTickets() {
+// ✅ Backend Base URL
+const API_URL = "http://localhost:5000";
 
+function AllTickets() {
   const navigate = useNavigate();
+
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
 
-  const tickets = [
-    {
-      id: "TKT-001",
-      customer: "Rahul Sharma",
-      email: "rahul@company.com",
-      issue: "VPN not connecting",
-      priority: "High",
-      status: "Open",
-      date: "26 May 2026",
-    },
+  // ─────────────────────────────────────────────────────────────
+  // FETCH ALL TICKETS
+  // ─────────────────────────────────────────────────────────────
+  const fetchTickets = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-    {
-      id: "TKT-002",
-      customer: "Priya Mehta",
-      email: "priya@company.com",
-      issue: "Outlook sync issue",
-      priority: "Medium",
-      status: "In Progress",
-      date: "25 May 2026",
-    },
+    try {
+      // ✅ Get admin token
+      const token = localStorage.getItem("token");
 
-    {
-      id: "TKT-003",
-      customer: "Amit Verma",
-      email: "amit@company.com",
-      issue: "Laptop overheating",
-      priority: "Low",
-      status: "Closed",
-      date: "24 May 2026",
-    },
+      if (!token) {
+        throw new Error("No admin token found. Please login again.");
+      }
 
-    {
-      id: "TKT-004",
-      customer: "Sneha Patil",
-      email: "sneha@company.com",
-      issue: "Cannot access portal",
-      priority: "High",
-      status: "Open",
-      date: "23 May 2026",
-    },
-  ];
+      // ✅ Fetch from backend
+      const response = await fetch(
+        `${API_URL}/api/tickets/admin/all`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
+      // ✅ Convert response to text first
+      const text = await response.text();
+      console.log("API RESPONSE:", text);
+
+      // ✅ Handle auth errors
+      if (response.status === 401) {
+        throw new Error("Unauthorized. Please login again.");
+      }
+
+      if (response.status === 403) {
+        throw new Error("Admin access required.");
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tickets (${response.status})`);
+      }
+
+      // ✅ Parse JSON safely
+      const data = JSON.parse(text);
+
+      // ✅ Normalize backend data
+      const normalized = data.map((t) => ({
+        id: t.ticketNumber || t._id,
+        customer: t.user?.name || "Unknown",
+        email: t.user?.email || "—",
+        issue: t.title || "No subject",
+        priority: t.priority || "Medium",
+        status: t.status || "Open",
+        date: t.createdAt
+          ? new Date(t.createdAt).toLocaleDateString("en-IN", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "—",
+      }));
+
+      setTickets(normalized);
+    } catch (err) {
+      console.error("Ticket Fetch Error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────
+  // LOAD ON PAGE OPEN
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    fetchTickets();
+  }, [fetchTickets]);
+
+  // ─────────────────────────────────────────────────────────────
+  // FILTER TICKETS
+  // ─────────────────────────────────────────────────────────────
   const filteredTickets = tickets.filter((ticket) => {
-
     const matchesSearch =
-      ticket.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.customer
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       ticket.issue.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
@@ -64,6 +112,130 @@ function AllTickets() {
     return matchesSearch && matchesStatus;
   });
 
+  // ─────────────────────────────────────────────────────────────
+  // LOADING SCREEN
+  // ─────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div
+        style={{
+          background: "#f5f7fb",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        <div
+          style={{
+            width: "44px",
+            height: "44px",
+            border: "4px solid #e5e7eb",
+            borderTop: "4px solid #2563eb",
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite",
+          }}
+        />
+
+        <p
+          style={{
+            color: "#6b7280",
+            fontSize: "16px",
+          }}
+        >
+          Loading tickets...
+        </p>
+
+        <style>
+          {`
+            @keyframes spin {
+              to {
+                transform: rotate(360deg);
+              }
+            }
+          `}
+        </style>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // ERROR SCREEN
+  // ─────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div
+        style={{
+          background: "#f5f7fb",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        <div
+          style={{
+            background: "white",
+            borderRadius: "16px",
+            padding: "32px 40px",
+            textAlign: "center",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+            maxWidth: "420px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "40px",
+              marginBottom: "12px",
+            }}
+          >
+            ⚠️
+          </div>
+
+          <h2
+            style={{
+              color: "#111827",
+              marginBottom: "8px",
+            }}
+          >
+            Failed to load tickets
+          </h2>
+
+          <p
+            style={{
+              color: "#6b7280",
+              marginBottom: "24px",
+            }}
+          >
+            {error}
+          </p>
+
+          <button
+            onClick={fetchTickets}
+            style={{
+              background: "#2563eb",
+              color: "white",
+              border: "none",
+              padding: "12px 28px",
+              borderRadius: "10px",
+              fontSize: "15px",
+              cursor: "pointer",
+            }}
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // MAIN PAGE
+  // ─────────────────────────────────────────────────────────────
   return (
     <div
       style={{
@@ -72,8 +244,7 @@ function AllTickets() {
         padding: "30px",
       }}
     >
-
-      {/* Header */}
+      {/* HEADER */}
       <div
         style={{
           display: "flex",
@@ -106,21 +277,22 @@ function AllTickets() {
         </div>
 
         <button
+          onClick={fetchTickets}
           style={{
             background: "#2563eb",
             color: "white",
             border: "none",
-            padding: "14px 22px",
+            padding: "14px 20px",
             borderRadius: "12px",
-            fontSize: "16px",
+            fontSize: "15px",
             cursor: "pointer",
           }}
         >
-          + Create Ticket
+          ↻ Refresh
         </button>
       </div>
 
-      {/* Search + Filter */}
+      {/* SEARCH + FILTER */}
       <div
         style={{
           display: "flex",
@@ -129,10 +301,9 @@ function AllTickets() {
           flexWrap: "wrap",
         }}
       >
-
         <input
           type="text"
-          placeholder="Search by ticket ID, customer or issue..."
+          placeholder="Search tickets..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           style={{
@@ -160,10 +331,9 @@ function AllTickets() {
           <option>In Progress</option>
           <option>Closed</option>
         </select>
-
       </div>
 
-      {/* Stats Cards */}
+      {/* STATS */}
       <div
         style={{
           display: "grid",
@@ -172,7 +342,6 @@ function AllTickets() {
           marginBottom: "35px",
         }}
       >
-
         <div
           style={{
             background: "#dbeafe",
@@ -181,7 +350,9 @@ function AllTickets() {
           }}
         >
           <h3>Total Tickets</h3>
-          <h1 style={{ color: "#2563eb" }}>{tickets.length}</h1>
+          <h1 style={{ color: "#2563eb" }}>
+            {tickets.length}
+          </h1>
         </div>
 
         <div
@@ -192,8 +363,12 @@ function AllTickets() {
           }}
         >
           <h3>Open</h3>
+
           <h1 style={{ color: "#d97706" }}>
-            {tickets.filter((t) => t.status === "Open").length}
+            {
+              tickets.filter((t) => t.status === "Open")
+                .length
+            }
           </h1>
         </div>
 
@@ -205,8 +380,13 @@ function AllTickets() {
           }}
         >
           <h3>In Progress</h3>
+
           <h1 style={{ color: "#7c3aed" }}>
-            {tickets.filter((t) => t.status === "In Progress").length}
+            {
+              tickets.filter(
+                (t) => t.status === "In Progress"
+              ).length
+            }
           </h1>
         </div>
 
@@ -218,161 +398,181 @@ function AllTickets() {
           }}
         >
           <h3>Closed</h3>
+
           <h1 style={{ color: "#16a34a" }}>
-            {tickets.filter((t) => t.status === "Closed").length}
+            {
+              tickets.filter((t) => t.status === "Closed")
+                .length
+            }
           </h1>
         </div>
-
       </div>
 
-      {/* Tickets Table */}
-      <div
-        style={{
-          background: "white",
-          borderRadius: "20px",
-          overflowX: "auto",
-        }}
-      >
-
-        <table
+      {/* EMPTY STATE */}
+      {filteredTickets.length === 0 && (
+        <div
           style={{
-            width: "100%",
-            borderCollapse: "collapse",
+            background: "white",
+            borderRadius: "20px",
+            padding: "60px",
+            textAlign: "center",
+            color: "#6b7280",
           }}
         >
-
-          <thead
+          <div
             style={{
-              background: "#f9fafb",
+              fontSize: "36px",
+              marginBottom: "12px",
             }}
           >
-            <tr>
+            🎫
+          </div>
 
-              <th style={tableHead}>Ticket ID</th>
-              <th style={tableHead}>Customer</th>
-              <th style={tableHead}>Issue</th>
-              <th style={tableHead}>Priority</th>
-              <th style={tableHead}>Status</th>
-              <th style={tableHead}>Date</th>
-              <th style={tableHead}>Action</th>
+          <p style={{ fontSize: "18px" }}>
+            No tickets found matching your filters.
+          </p>
+        </div>
+      )}
 
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {filteredTickets.map((ticket, index) => (
-
-              <tr
-                key={index}
-                style={{
-                  borderBottom: "1px solid #f3f4f6",
-                }}
-              >
-
-                <td style={tableCell}>{ticket.id}</td>
-
-                <td style={tableCell}>
-                  <div>{ticket.customer}</div>
-
-                  <div
-                    style={{
-                      color: "#6b7280",
-                      fontSize: "14px",
-                    }}
-                  >
-                    {ticket.email}
-                  </div>
-                </td>
-
-                <td style={tableCell}>{ticket.issue}</td>
-
-                <td style={tableCell}>
-
-                  <span
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: "30px",
-
-                      background:
-                        ticket.priority === "High"
-                          ? "#fee2e2"
-                          : ticket.priority === "Medium"
-                          ? "#fef3c7"
-                          : "#dcfce7",
-
-                      color:
-                        ticket.priority === "High"
-                          ? "#dc2626"
-                          : ticket.priority === "Medium"
-                          ? "#d97706"
-                          : "#16a34a",
-                    }}
-                  >
-                    {ticket.priority}
-                  </span>
-
-                </td>
-
-                <td style={tableCell}>
-
-                  <span
-                    style={{
-                      padding: "7px 14px",
-                      borderRadius: "30px",
-
-                      background:
-                        ticket.status === "Open"
-                          ? "#fef3c7"
-                          : ticket.status === "Closed"
-                          ? "#dcfce7"
-                          : "#ede9fe",
-
-                      color:
-                        ticket.status === "Open"
-                          ? "#d97706"
-                          : ticket.status === "Closed"
-                          ? "#16a34a"
-                          : "#7c3aed",
-                    }}
-                  >
-                    {ticket.status}
-                  </span>
-
-                </td>
-
-                <td style={tableCell}>{ticket.date}</td>
-
-                <td style={tableCell}>
-
-                  <button
-                    onClick={() =>
-                      navigate(`/admin/ticket/${ticket.id}`)
-                    }
-                    style={{
-                      background: "#eff6ff",
-                      color: "#2563eb",
-                      border: "1px solid #bfdbfe",
-                      padding: "8px 14px",
-                      borderRadius: "10px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    View →
-                  </button>
-
-                </td>
-
+      {/* TABLE */}
+      {filteredTickets.length > 0 && (
+        <div
+          style={{
+            background: "white",
+            borderRadius: "20px",
+            overflowX: "auto",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+            }}
+          >
+            <thead style={{ background: "#f9fafb" }}>
+              <tr>
+                <th style={tableHead}>Ticket ID</th>
+                <th style={tableHead}>Customer</th>
+                <th style={tableHead}>Issue</th>
+                <th style={tableHead}>Priority</th>
+                <th style={tableHead}>Status</th>
+                <th style={tableHead}>Date</th>
+                <th style={tableHead}>Action</th>
               </tr>
+            </thead>
 
-            ))}
+            <tbody>
+              {filteredTickets.map((ticket, index) => (
+                <tr
+                  key={ticket.id || index}
+                  style={{
+                    borderBottom:
+                      "1px solid #f3f4f6",
+                  }}
+                >
+                  <td style={tableCell}>
+                    {ticket.id}
+                  </td>
 
-          </tbody>
+                  <td style={tableCell}>
+                    <div>{ticket.customer}</div>
 
-        </table>
+                    <div
+                      style={{
+                        color: "#6b7280",
+                        fontSize: "14px",
+                      }}
+                    >
+                      {ticket.email}
+                    </div>
+                  </td>
 
-      </div>
+                  <td style={tableCell}>
+                    {ticket.issue}
+                  </td>
 
+                  <td style={tableCell}>
+                    <span
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: "30px",
+                        background:
+                          ticket.priority === "High"
+                            ? "#fee2e2"
+                            : ticket.priority ===
+                              "Medium"
+                            ? "#fef3c7"
+                            : "#dcfce7",
+                        color:
+                          ticket.priority === "High"
+                            ? "#dc2626"
+                            : ticket.priority ===
+                              "Medium"
+                            ? "#d97706"
+                            : "#16a34a",
+                      }}
+                    >
+                      {ticket.priority}
+                    </span>
+                  </td>
+
+                  <td style={tableCell}>
+                    <span
+                      style={{
+                        padding: "7px 14px",
+                        borderRadius: "30px",
+                        background:
+                          ticket.status === "Open"
+                            ? "#fef3c7"
+                            : ticket.status ===
+                              "Closed"
+                            ? "#dcfce7"
+                            : "#ede9fe",
+                        color:
+                          ticket.status === "Open"
+                            ? "#d97706"
+                            : ticket.status ===
+                              "Closed"
+                            ? "#16a34a"
+                            : "#7c3aed",
+                      }}
+                    >
+                      {ticket.status}
+                    </span>
+                  </td>
+
+                  <td style={tableCell}>
+                    {ticket.date}
+                  </td>
+
+                  {/* ✅ VIEW BUTTON */}
+                  <td style={tableCell}>
+                    <button
+                      onClick={() =>
+                        navigate(
+                          `/admin/ticket/${ticket.id}`
+                        )
+                      }
+                      style={{
+                        background: "#eff6ff",
+                        color: "#2563eb",
+                        border:
+                          "1px solid #bfdbfe",
+                        padding: "8px 14px",
+                        borderRadius: "10px",
+                        cursor: "pointer",
+                        fontWeight: "500",
+                      }}
+                    >
+                      View →
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,8 +5,8 @@ import axios from "axios";
 export default function Login() {
   const navigate = useNavigate();
 
-  const [form, setForm]       = useState({ email: "", password: "" });
-  const [errors, setErrors]   = useState({});
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -16,7 +16,7 @@ export default function Login() {
 
   const validate = () => {
     const newErrors = {};
-    if (!form.email.trim())    newErrors.email    = "Email is required";
+    if (!form.email.trim()) newErrors.email = "Email is required";
     if (!form.password.trim()) newErrors.password = "Password is required";
     return newErrors;
   };
@@ -35,19 +35,27 @@ export default function Login() {
         password: form.password,
       });
 
-      // Save token and user to localStorage
-      localStorage.setItem("sd_token", res.data.token);
-      localStorage.setItem("sd_user", JSON.stringify(res.data.user));
+      // ✅ SAFE TOKEN HANDLING (FIXED)
+      const token = res.data?.token;
+      const user = res.data?.user;
+
+      if (!token) {
+        throw new Error("Token not received from server");
+      }
+
+      // ✅ IMPORTANT FIX: unified key name
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
 
       // Redirect based on role
-      if (res.data.user.role === "admin") {
+      if (user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
         navigate("/");
       }
 
     } catch (error) {
-      const msg = error.response?.data?.message || "Something went wrong";
+      const msg = error.response?.data?.message || error.message || "Something went wrong";
       setErrors({ password: msg });
     } finally {
       setLoading(false);
@@ -68,7 +76,6 @@ export default function Login() {
         boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
       }}>
 
-        {/* Logo */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
           <div style={{
             width: "48px", height: "48px", borderRadius: "12px",
@@ -86,7 +93,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Admin hint */}
         <div style={{
           background: "#eff6ff", border: "1px solid #bfdbfe",
           borderRadius: "8px", padding: "10px 14px", marginBottom: "1.5rem",
@@ -99,7 +105,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Email */}
         <div style={{ marginBottom: "16px" }}>
           <label style={labelStyle}>Email Address <span style={{ color: "#ef4444" }}>*</span></label>
           <input
@@ -112,7 +117,6 @@ export default function Login() {
           {errors.email && <p style={errorStyle}>{errors.email}</p>}
         </div>
 
-        {/* Password */}
         <div style={{ marginBottom: "24px" }}>
           <label style={labelStyle}>Password <span style={{ color: "#ef4444" }}>*</span></label>
           <input
@@ -126,7 +130,6 @@ export default function Login() {
           {errors.password && <p style={errorStyle}>{errors.password}</p>}
         </div>
 
-        {/* Submit */}
         <button
           onClick={handleSubmit}
           disabled={loading}
@@ -141,7 +144,6 @@ export default function Login() {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* Signup Link */}
         <p style={{ textAlign: "center", fontSize: "14px", color: "#64748b", margin: 0 }}>
           Don't have an account?{" "}
           <Link to="/signup" style={{ color: "#2563eb", fontWeight: "600", textDecoration: "none" }}>

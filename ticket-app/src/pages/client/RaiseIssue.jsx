@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-// Auto generate ticket ID
-const generateTicketId = () => {
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `TKT-${num}`;
-};
+import axios from "axios"; // ⚡ Added Axios import
 
 const CATEGORIES = [
   "Network / Internet",
@@ -20,11 +15,8 @@ const CATEGORIES = [
 
 export default function RaiseIssue() {
   const navigate = useNavigate();
-  const ticketId = generateTicketId();
 
   const [form, setForm] = useState({
-    name: "",
-    email: "",
     category: "",
     title: "",
     description: "",
@@ -33,6 +25,8 @@ export default function RaiseIssue() {
 
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [serverTicketId, setServerTicketId] = useState(""); // ⚡ Store the REAL sequential ID returned from Atlas
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -41,22 +35,55 @@ export default function RaiseIssue() {
 
   const validate = () => {
     const newErrors = {};
-    if (!form.name.trim())        newErrors.name        = "Name is required";
-    if (!form.email.trim())       newErrors.email       = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Enter a valid email";
     if (!form.category)           newErrors.category    = "Please select a category";
     if (!form.title.trim())       newErrors.title       = "Issue title is required";
     if (!form.description.trim()) newErrors.description = "Description is required";
     return newErrors;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    setSubmitted(true);
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setErrors({ server: "Authentication token missing. Please log in again." });
+        setLoading(false);
+        return;
+      }
+
+      // ⚡ POST request sending form keys strictly matching backend validation properties
+      const res = await axios.post(
+        "http://localhost:5000/api/tickets",
+        {
+          category: form.category,
+          title: form.title,
+          description: form.description,
+          priority: form.priority,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Save sequential tracking value emitted from Counter schema pipeline
+      setServerTicketId(res.data.ticketNumber);
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Ticket Submission Failure:", err);
+      setErrors({
+        server: err.response?.data?.message || "Failed to transmit ticket details to server.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Success screen
@@ -87,12 +114,12 @@ export default function RaiseIssue() {
             background: "#eff6ff", border: "1px solid #bfdbfe",
             borderRadius: "10px", padding: "1rem", marginBottom: "2rem",
           }}>
-            <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 4px 0" }}>Your Ticket ID</p>
+            <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 4px 0" }}>Your Official Ticket ID</p>
             <p style={{ fontSize: "22px", fontWeight: "700", color: "#2563eb", margin: 0, fontFamily: "monospace" }}>
-              {ticketId}
+              {serverTicketId}
             </p>
             <p style={{ fontSize: "12px", color: "#94a3b8", margin: "4px 0 0 0" }}>
-              Save this ID to track your ticket
+              This ID is safely logged in your Atlas database index
             </p>
           </div>
 
@@ -108,7 +135,11 @@ export default function RaiseIssue() {
               View My Tickets
             </button>
             <button
-              onClick={() => { setSubmitted(false); setForm({ name: "", email: "", category: "", title: "", description: "", priority: "Medium" }); }}
+              onClick={() => { 
+                setSubmitted(false); 
+                setForm({ category: "", title: "", description: "", priority: "Medium" }); 
+                setErrors({});
+              }}
               style={{
                 padding: "10px 20px", borderRadius: "8px", fontSize: "14px",
                 fontWeight: "600", background: "#f1f5f9", color: "#475569",
@@ -137,53 +168,14 @@ export default function RaiseIssue() {
           </p>
         </div>
 
-        {/* Ticket ID Preview */}
-        <div style={{
-          background: "#eff6ff", border: "1px solid #bfdbfe",
-          borderRadius: "10px", padding: "12px 16px",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          marginBottom: "1.5rem",
-        }}>
-          <div>
-            <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 2px 0" }}>Auto-generated Ticket ID</p>
-            <p style={{ fontSize: "18px", fontWeight: "700", color: "#2563eb", margin: 0, fontFamily: "monospace" }}>
-              {ticketId}
-            </p>
-          </div>
-          <div style={{ fontSize: "24px" }}>🎫</div>
-        </div>
-
         {/* Form Card */}
-        <div style={{
-          background: "#fff", border: "1px solid #e2e8f0",
-          borderRadius: "14px", padding: "2rem",
-        }}>
-
-          {/* Row — Name & Email */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
-            <div>
-              <label style={labelStyle}>Full Name <span style={{ color: "#ef4444" }}>*</span></label>
-              <input
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="e.g. Rahul Kumar"
-                style={inputStyle(errors.name)}
-              />
-              {errors.name && <p style={errorStyle}>{errors.name}</p>}
+        <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "2rem" }}>
+          
+          {errors.server && (
+            <div style={{ padding: "10px", background: "#fef2f2", border: "1px solid #fca5a5", color: "#ef4444", borderRadius: "8px", marginBottom: "1rem", fontSize: "14px" }}>
+              {errors.server}
             </div>
-            <div>
-              <label style={labelStyle}>Email Address <span style={{ color: "#ef4444" }}>*</span></label>
-              <input
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="e.g. rahul@company.com"
-                style={inputStyle(errors.email)}
-              />
-              {errors.email && <p style={errorStyle}>{errors.email}</p>}
-            </div>
-          </div>
+          )}
 
           {/* Row — Category & Priority */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
@@ -194,6 +186,7 @@ export default function RaiseIssue() {
                 value={form.category}
                 onChange={handleChange}
                 style={inputStyle(errors.category)}
+                disabled={loading}
               >
                 <option value="">Select category</option>
                 {CATEGORIES.map((c) => (
@@ -209,6 +202,7 @@ export default function RaiseIssue() {
                 value={form.priority}
                 onChange={handleChange}
                 style={inputStyle()}
+                disabled={loading}
               >
                 <option value="Low">🟢 Low</option>
                 <option value="Medium">🟡 Medium</option>
@@ -226,6 +220,7 @@ export default function RaiseIssue() {
               onChange={handleChange}
               placeholder="e.g. VPN not connecting after Windows update"
               style={inputStyle(errors.title)}
+              disabled={loading}
             />
             {errors.title && <p style={errorStyle}>{errors.title}</p>}
           </div>
@@ -237,9 +232,10 @@ export default function RaiseIssue() {
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="Describe your issue in detail — what happened, when it started, what you've already tried..."
+              placeholder="Describe your issue in detail — what happened, when it started..."
               rows={5}
               style={{ ...inputStyle(errors.description), resize: "vertical" }}
+              disabled={loading}
             />
             {errors.description && <p style={errorStyle}>{errors.description}</p>}
           </div>
@@ -248,17 +244,19 @@ export default function RaiseIssue() {
           <div style={{ display: "flex", gap: "10px" }}>
             <button
               onClick={handleSubmit}
+              disabled={loading}
               style={{
                 flex: 1, padding: "12px", borderRadius: "8px",
                 fontSize: "15px", fontWeight: "600",
-                background: "#2563eb", color: "#fff",
-                border: "none", cursor: "pointer",
+                background: loading ? "#93c5fd" : "#2563eb", color: "#fff",
+                border: "none", cursor: loading ? "not-allowed" : "pointer",
               }}
             >
-              Submit Ticket
+              {loading ? "Submitting..." : "Submit Ticket"}
             </button>
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/client/my-tickets")}
+              disabled={loading}
               style={{
                 padding: "12px 20px", borderRadius: "8px",
                 fontSize: "15px", fontWeight: "500",
@@ -276,7 +274,6 @@ export default function RaiseIssue() {
   );
 }
 
-// Styles
 const labelStyle = {
   display: "block", fontSize: "13px", fontWeight: "600",
   color: "#374151", marginBottom: "6px",
