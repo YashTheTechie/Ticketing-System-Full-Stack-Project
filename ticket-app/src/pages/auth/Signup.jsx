@@ -490,7 +490,7 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      const baseURL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+      const baseURL = process.env.REACT_APP_API_URL || "";
       await axios.post(`${baseURL}/api/auth/signup`, {
         name: form.name,
         email: form.email,

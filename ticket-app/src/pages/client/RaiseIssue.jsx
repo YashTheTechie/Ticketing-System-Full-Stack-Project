@@ -69,7 +69,7 @@ export default function RaiseIssue() {
       }
 
       const res = await axios.post(
-        "http://localhost:5000/api/tickets",
+        "/api/tickets",
         {
           category: form.category,
           title: form.title,

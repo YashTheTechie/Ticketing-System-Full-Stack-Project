@@ -35,7 +35,7 @@ export default function TicketDetail() {
         return;
       }
 
-      const res = await axios.get(`http://localhost:5000/api/tickets/${id}`, {
+      const res = await axios.get(`/api/tickets/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -62,7 +62,7 @@ export default function TicketDetail() {
 
     try {
       await axios.post(
-        `http://localhost:5000/api/tickets/${id}/message`,
+        `/api/tickets/${id}/message`,
         {
           text: msgInput,
           sender: "user", // Identifies this message thread contribution as the client side

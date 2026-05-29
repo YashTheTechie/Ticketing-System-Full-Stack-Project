@@ -56,7 +56,7 @@ export default function MyTickets() {
         }
 
         const res = await axios.get(
-          "http://localhost:5000/api/tickets/my-tickets",
+          "/api/tickets/my-tickets",
           {
             headers: {
               Authorization: `Bearer ${token}`,

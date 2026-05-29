@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 // ✅ Backend Base URL
-const API_URL = "http://localhost:5000";
+const API_URL = "";
 
 function AllTickets() {
   const navigate = useNavigate();

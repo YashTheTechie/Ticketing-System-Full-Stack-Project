@@ -19,6 +19,19 @@ import AllTickets from "./pages/admin/AllTickets";
 import AdminTicketDetail from "./pages/admin/TicketDetail";
 import AdminHistory from "./pages/admin/History";
 
+import axios from "axios";
+
+// 1. Dynamic Environment Setup: Localhost fallback if variable is undefined
+axios.defaults.baseURL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+// 2. Global Token Interceptor: Automatically attaches JWT headers to all API calls
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 // ⚡ 1. CLIENT ROUTE GUARD
 const ClientProtectedRoute = () => {
   const token = localStorage.getItem("token");

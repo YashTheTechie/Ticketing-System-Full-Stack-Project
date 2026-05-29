@@ -454,7 +454,7 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/admin/login", { email });
+      const res = await axios.post("/api/auth/admin/login", { email });
       if (res.data.step2Required) {
         setStep(2);
       }
@@ -477,7 +477,7 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/admin/verify-otp", {
+      const res = await axios.post("/api/auth/admin/verify-otp", {
         email,
         otp,
       });

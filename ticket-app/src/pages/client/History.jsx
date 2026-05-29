@@ -29,7 +29,7 @@ export default function ClientHistory() {
         setError(null);
         
         // Hits your endpoint that retrieves the logged-in user's tickets
-        const res = await axios.get("http://localhost:5000/api/tickets/my-tickets", {
+        const res = await axios.get("/api/tickets/my-tickets", {
           headers: { Authorization: `Bearer ${token}` },
         });
 

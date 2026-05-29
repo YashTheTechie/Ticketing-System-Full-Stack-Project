@@ -38,7 +38,7 @@ export default function AdminTicketDetail() {
   const fetchTicket = async () => {
     try {
       setError(null);
-      const res = await axios.get(`http://localhost:5000/api/tickets/${id}`, {
+      const res = await axios.get(`/api/tickets/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTicket(res.data);
@@ -52,7 +52,7 @@ export default function AdminTicketDetail() {
   const handleStatusChange = async (newStatus) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/tickets/${id}/status`,
+        `/api/tickets/${id}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -67,7 +67,7 @@ export default function AdminTicketDetail() {
     if (!noteInput.trim()) return;
     try {
       await axios.post(
-        `http://localhost:5000/api/tickets/${id}/note`,
+        `/api/tickets/${id}/note`,
         { text: noteInput.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -82,7 +82,7 @@ export default function AdminTicketDetail() {
     if (!msgInput.trim()) return;
     try {
       await axios.post(
-        `http://localhost:5000/api/tickets/${id}/message`,
+        `/api/tickets/${id}/message`,
         { 
           text: msgInput.trim(), 
           sender: "admin"

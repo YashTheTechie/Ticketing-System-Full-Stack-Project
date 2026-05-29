@@ -17,7 +17,7 @@ function Dashboard() {
       try {
         setLoading(true);
         setError(null);
-        const res = await axios.get("http://localhost:5000/api/tickets/admin/all", {
+        const res = await axios.get("/api/tickets/admin/all", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setTickets(res.data);

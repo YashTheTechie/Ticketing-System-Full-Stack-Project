@@ -386,7 +386,7 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const baseURL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+      const baseURL = process.env.REACT_APP_API_URL || "";
       const res = await axios.post(`${baseURL}/api/auth/login`, {
         email: form.email,
         password: form.password,

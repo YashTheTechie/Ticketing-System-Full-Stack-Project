@@ -16,7 +16,7 @@ function History() {
       try {
         setLoading(true);
         setError("");
-        const res = await axios.get("http://localhost:5000/api/tickets/history", {
+        const res = await axios.get("/api/tickets/history", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setHistoryData(res.data);
