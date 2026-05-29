@@ -4,16 +4,20 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth.js";
-import ticketRoutes from "./routes/ticketroutes.js"; // ✅ MATCHED: Changed to lowercase 'r' to match filename precisely
+import ticketRoutes from "./routes/ticketroutes.js";
 
 dotenv.config();
 
 const app = express();
 
-// ⚡ Middleware Configuration
+// ⚡ Middleware Configuration (Secure for Production)
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"], // Explicitly allow your React client ports
+    origin: [
+      "http://localhost:3000", 
+      "http://127.0.0.1:3000", 
+      process.env.FRONTEND_URL // Safely injects your live website link on Render
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cache-Control", "Pragma", "Expires"],
     credentials: true,
