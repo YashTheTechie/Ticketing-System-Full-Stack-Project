@@ -136,15 +136,17 @@ router.post("/admin/login", async (req, res) => {
     console.log(`\n👑 GENERATED OTP: ${otpCode}\n`);
 
     // ==========================================
-    // 📧 NODEMAILER TRANSPORTER
-    // ==========================================
-    const transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+// 📧 NODEMAILER TRANSPORTER (BULLETPROOF SETUP)
+// ==========================================
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // Uses SSL for a secure connection on port 465
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
     // ==========================================
     // 📩 SEND OTP EMAIL
