@@ -93,7 +93,6 @@ export const getMyTickets = async (req, res) => {
 
 /**
  * 🔍 GET SINGLE TICKET (SHARED PATHWAY WITH ACCESS CONTROLS)
- * 🛡️ Enhanced: Clients are restricted from viewing other users' tickets!
  */
 export const getSingleTicket = async (req, res) => {
   try {
@@ -113,8 +112,9 @@ export const getSingleTicket = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // 🛡️ SECURITY CHECK: If user is NOT an admin, verify they own this ticket record
-    if (req.user?.role !== "admin" && ticket.user?._id.toString() !== userId.toString()) {
+    // 🛡️ SECURITY CHECK: Verify they own this ticket record if they are not an admin
+    const ticketOwnerId = ticket.user?._id || ticket.user;
+    if (req.user?.role !== "admin" && ticketOwnerId.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Access Denied. You do not own this ticket record." });
     }
 
@@ -199,7 +199,6 @@ export const addNote = async (req, res) => {
 
 /**
  * 💬 SEND MESSAGE (TWO-WAY CHAT PATHWAY)
- * 🛡️ Enhanced: Explicitly maps true sender identity out of validated server tokens
  */
 export const sendMessage = async (req, res) => {
   try {
@@ -223,12 +222,13 @@ export const sendMessage = async (req, res) => {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    // 🛡️ SECURITY CHECK: Non-admins cannot chat inside other people's tickets
-    if (req.user?.role !== "admin" && ticket.user.toString() !== userId.toString()) {
+    // 🛡️ SECURITY CHECK SAFED: Works beautifully whether ticket.user is populated or not
+    const ticketOwnerId = ticket.user?._id || ticket.user;
+    if (req.user?.role !== "admin" && ticketOwnerId.toString() !== userId.toString()) {
       return res.status(403).json({ message: "Unauthorized messaging attempt context." });
     }
 
-    // ⚡ AUTO ASSIGN IDENTITY: Enforces "admin" vs "user" strings strictly from the secure token
+    // ⚡ AUTO ASSIGN IDENTITY: Enforces validation schemas securely from token structures
     const messageSenderType = req.user?.role === "admin" ? "admin" : "user";
 
     ticket.messages.push({
@@ -242,5 +242,22 @@ export const sendMessage = async (req, res) => {
   } catch (error) {
     console.error("Error sending message:", error);
     res.status(500).json({ message: "Error sending message" });
+  }
+};
+
+/**
+ * 👑 GET RESOLVED TICKETS HISTORY (ADMIN ONLY PATHWAY)
+ * ✅ ADDED: This connects directly to your newly created admin History page!
+ */
+export const getResolvedHistory = async (req, res) => {
+  try {
+    const history = await Ticket.find({ status: "Resolved" })
+      .populate("user", "name email")
+      .sort({ updatedAt: -1 }); // Arranges by the most recently closed tickets first
+
+    res.status(200).json(history);
+  } catch (error) {
+    console.error("Error fetching resolution history logs:", error);
+    res.status(500).json({ message: "Failed to load historical resolution logs." });
   }
 };
