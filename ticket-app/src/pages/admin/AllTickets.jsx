@@ -64,11 +64,12 @@ function AllTickets() {
       // ✅ Normalize backend data
       const normalized = data.map((t) => ({
         id: t.ticketNumber || t._id,
+        dbId: t._id, // 🌟 ADDED: Keeps raw Mongo ID safe for navigation routing parameters
         customer: t.user?.name || "Unknown",
         email: t.user?.email || "—",
         issue: t.title || "No subject",
         priority: t.priority || "Medium",
-        status: t.status || "Open",
+        status: t.status || "Open", // Pulls "Open", "In Progress", or "Resolved"
         date: t.createdAt
           ? new Date(t.createdAt).toLocaleDateString("en-IN", {
               day: "2-digit",
@@ -100,9 +101,7 @@ function AllTickets() {
   const filteredTickets = tickets.filter((ticket) => {
     const matchesSearch =
       ticket.id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.customer
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+      ticket.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       ticket.issue.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
@@ -123,7 +122,7 @@ function AllTickets() {
           minHeight: "100vh",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justify: "center",
           flexDirection: "column",
           gap: "16px",
         }}
@@ -172,7 +171,7 @@ function AllTickets() {
           minHeight: "100vh",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
+          justify: "center",
           flexDirection: "column",
           gap: "16px",
         }}
@@ -187,30 +186,13 @@ function AllTickets() {
             maxWidth: "420px",
           }}
         >
-          <div
-            style={{
-              fontSize: "40px",
-              marginBottom: "12px",
-            }}
-          >
-            ⚠️
-          </div>
+          <div style={{ fontSize: "40px", marginBottom: "12px" }}>⚠️</div>
 
-          <h2
-            style={{
-              color: "#111827",
-              marginBottom: "8px",
-            }}
-          >
+          <h2 style={{ color: "#111827", marginBottom: "8px" }}>
             Failed to load tickets
           </h2>
 
-          <p
-            style={{
-              color: "#6b7280",
-              marginBottom: "24px",
-            }}
-          >
+          <p style={{ color: "#6b7280", marginBottom: "24px" }}>
             {error}
           </p>
 
@@ -266,12 +248,7 @@ function AllTickets() {
             All Tickets
           </h1>
 
-          <p
-            style={{
-              color: "#6b7280",
-              fontSize: "18px",
-            }}
-          >
+          <p style={{ color: "#6b7280", fontSize: "18px" }}>
             Manage and monitor all support requests.
           </p>
         </div>
@@ -329,11 +306,11 @@ function AllTickets() {
           <option>All Status</option>
           <option>Open</option>
           <option>In Progress</option>
-          <option>Closed</option>
+          <option>Resolved</option> {/* ✅ MATCHED: Swapped "Closed" for database literal "Resolved" */}
         </select>
       </div>
 
-      {/* STATS */}
+      {/* STATS PANELS */}
       <div
         style={{
           display: "grid",
@@ -342,68 +319,30 @@ function AllTickets() {
           marginBottom: "35px",
         }}
       >
-        <div
-          style={{
-            background: "#dbeafe",
-            padding: "22px",
-            borderRadius: "18px",
-          }}
-        >
+        <div style={{ background: "#dbeafe", padding: "22px", borderRadius: "18px" }}>
           <h3>Total Tickets</h3>
-          <h1 style={{ color: "#2563eb" }}>
-            {tickets.length}
-          </h1>
+          <h1 style={{ color: "#2563eb" }}>{tickets.length}</h1>
         </div>
 
-        <div
-          style={{
-            background: "#fef3c7",
-            padding: "22px",
-            borderRadius: "18px",
-          }}
-        >
+        <div style={{ background: "#fef3c7", padding: "22px", borderRadius: "18px" }}>
           <h3>Open</h3>
-
           <h1 style={{ color: "#d97706" }}>
-            {
-              tickets.filter((t) => t.status === "Open")
-                .length
-            }
+            {tickets.filter((t) => t.status === "Open").length}
           </h1>
         </div>
 
-        <div
-          style={{
-            background: "#ede9fe",
-            padding: "22px",
-            borderRadius: "18px",
-          }}
-        >
+        <div style={{ background: "#ede9fe", padding: "22px", borderRadius: "18px" }}>
           <h3>In Progress</h3>
-
           <h1 style={{ color: "#7c3aed" }}>
-            {
-              tickets.filter(
-                (t) => t.status === "In Progress"
-              ).length
-            }
+            {tickets.filter((t) => t.status === "In Progress").length}
           </h1>
         </div>
 
-        <div
-          style={{
-            background: "#dcfce7",
-            padding: "22px",
-            borderRadius: "18px",
-          }}
-        >
-          <h3>Closed</h3>
-
+        <div style={{ background: "#dcfce7", padding: "22px", borderRadius: "18px" }}>
+          <h3>Resolved</h3> {/* ✅ LABELED CONSISTENTLY */}
           <h1 style={{ color: "#16a34a" }}>
-            {
-              tickets.filter((t) => t.status === "Closed")
-                .length
-            }
+            {/* 🌟 FIX: Inspects database specific enum array properties correctly */}
+            {tickets.filter((t) => t.status === "Resolved").length}
           </h1>
         </div>
       </div>
@@ -419,22 +358,14 @@ function AllTickets() {
             color: "#6b7280",
           }}
         >
-          <div
-            style={{
-              fontSize: "36px",
-              marginBottom: "12px",
-            }}
-          >
-            🎫
-          </div>
-
+          <div style={{ fontSize: "36px", marginBottom: "12px" }}>🎫</div>
           <p style={{ fontSize: "18px" }}>
             No tickets found matching your filters.
           </p>
         </div>
       )}
 
-      {/* TABLE */}
+      {/* TABLE DATA GRID */}
       {filteredTickets.length > 0 && (
         <div
           style={{
@@ -443,12 +374,7 @@ function AllTickets() {
             overflowX: "auto",
           }}
         >
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-            }}
-          >
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead style={{ background: "#f9fafb" }}>
               <tr>
                 <th style={tableHead}>Ticket ID</th>
@@ -465,29 +391,18 @@ function AllTickets() {
               {filteredTickets.map((ticket, index) => (
                 <tr
                   key={ticket.id || index}
-                  style={{
-                    borderBottom:
-                      "1px solid #f3f4f6",
-                  }}
+                  style={{ borderBottom: "1px solid #f3f4f6" }}
                 >
-                  <td style={tableCell}>
+                  <td style={{ ...tableCell, fontFamily: "monospace", fontWeight: "700", color: "#4b5563" }}>
                     {ticket.id}
                   </td>
 
                   <td style={tableCell}>
-                    <div>{ticket.customer}</div>
-
-                    <div
-                      style={{
-                        color: "#6b7280",
-                        fontSize: "14px",
-                      }}
-                    >
-                      {ticket.email}
-                    </div>
+                    <div style={{ fontWeight: "600", color: "#111827" }}>{ticket.customer}</div>
+                    <div style={{ color: "#6b7280", fontSize: "14px" }}>{ticket.email}</div>
                   </td>
 
-                  <td style={tableCell}>
+                  <td style={{ ...tableCell, color: "#374151", fontWeight: "500" }}>
                     {ticket.issue}
                   </td>
 
@@ -496,18 +411,18 @@ function AllTickets() {
                       style={{
                         padding: "7px 14px",
                         borderRadius: "30px",
+                        fontSize: "13px",
+                        fontWeight: "600",
                         background:
                           ticket.priority === "High"
                             ? "#fee2e2"
-                            : ticket.priority ===
-                              "Medium"
+                            : ticket.priority === "Medium"
                             ? "#fef3c7"
                             : "#dcfce7",
                         color:
                           ticket.priority === "High"
                             ? "#dc2626"
-                            : ticket.priority ===
-                              "Medium"
+                            : ticket.priority === "Medium"
                             ? "#d97706"
                             : "#16a34a",
                       }}
@@ -521,18 +436,18 @@ function AllTickets() {
                       style={{
                         padding: "7px 14px",
                         borderRadius: "30px",
+                        fontSize: "13px",
+                        fontWeight: "600",
                         background:
                           ticket.status === "Open"
                             ? "#fef3c7"
-                            : ticket.status ===
-                              "Closed"
+                            : ticket.status === "Resolved"
                             ? "#dcfce7"
                             : "#ede9fe",
                         color:
                           ticket.status === "Open"
                             ? "#d97706"
-                            : ticket.status ===
-                              "Closed"
+                            : ticket.status === "Resolved"
                             ? "#16a34a"
                             : "#7c3aed",
                       }}
@@ -541,28 +456,27 @@ function AllTickets() {
                     </span>
                   </td>
 
-                  <td style={tableCell}>
+                  <td style={{ ...tableCell, color: "#6b7280" }}>
                     {ticket.date}
                   </td>
 
-                  {/* ✅ VIEW BUTTON */}
+                  {/* ✅ SAFED WORKSPACE VIEW INTERSECTION REDIRECT */}
                   <td style={tableCell}>
                     <button
-                      onClick={() =>
-                        navigate(
-                          `/admin/ticket/${ticket.id}`
-                        )
-                      }
+                      onClick={() => navigate(`/admin/ticket/${ticket.dbId || ticket.id}`)}
                       style={{
                         background: "#eff6ff",
                         color: "#2563eb",
-                        border:
-                          "1px solid #bfdbfe",
+                        border: "1px solid #bfdbfe",
                         padding: "8px 14px",
                         borderRadius: "10px",
                         cursor: "pointer",
-                        fontWeight: "500",
+                        fontWeight: "600",
+                        fontSize: "13px",
+                        transition: "background 0.2s",
                       }}
+                      onMouseEnter={(e) => (e.target.style.background = "#dbeafe")}
+                      onMouseLeave={(e) => (e.target.style.background = "#eff6ff")}
                     >
                       View →
                     </button>

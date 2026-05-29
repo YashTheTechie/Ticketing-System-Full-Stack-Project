@@ -85,7 +85,7 @@ export default function AdminTicketDetail() {
         `http://localhost:5000/api/tickets/${id}/message`,
         { 
           text: msgInput.trim(), 
-          sender: "admin" // Maps cleanly to backend model enum
+          sender: "admin"
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -144,12 +144,12 @@ export default function AdminTicketDetail() {
             <span style={{ fontSize: "20px" }}>✅</span>
             <div>
               <h4 style={{ margin: 0, color: "#15803d", fontWeight: "700" }}>Ticket Resolved Successfully</h4>
-              <p style={{ margin: "2px 0 0 0", fontSize: "14px", color: "#166534" }}>This issue is closed. Status controls have been locked down.</p>
+              <p style={{ margin: "2px 0 0 0", fontSize: "14px", color: "#166534" }}>This issue is closed. Status controls and text panels have been locked down.</p>
             </div>
           </div>
         )}
 
-        {/* MAIN BODY GRID LAYOUT */}
+        {/* MAIN BODY LAYOUT */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
           
           {/* TICKET CARD SUMMARY */}
@@ -173,7 +173,7 @@ export default function AdminTicketDetail() {
             <p style={{ color: "#334155", lineHeight: "1.6", margin: 0, whiteSpace: "pre-line" }}>{ticket.description}</p>
           </div>
 
-          {/* ⏱️ SYSTEM AUDIT HISTORY */}
+          {/* SYSTEM AUDIT HISTORY */}
           <div style={{ background: "#fff", borderRadius: "16px", padding: "1.5rem 2rem", border: "1px solid #e2e8f0" }}>
             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#334155", marginTop: 0, marginBottom: "1rem" }}>System Audit History</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -189,7 +189,7 @@ export default function AdminTicketDetail() {
             </div>
           </div>
 
-          {/* 🔄 CONDITIONAL STATUS PANEL */}
+          {/* STATUS PANEL */}
           {!isResolved && (
             <div style={{ background: "#fff", borderRadius: "16px", padding: "1.5rem 2rem", border: "1px solid #e2e8f0" }}>
               <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#334155", marginTop: 0, marginBottom: "1rem" }}>Update Ticket Progress</h3>
@@ -228,32 +228,42 @@ export default function AdminTicketDetail() {
           <div style={{ background: "#fff", borderRadius: "16px", padding: "2rem", border: "1px solid #e2e8f0" }}>
             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#334155", marginTop: 0, marginBottom: "1rem" }}>Internal Admin Notes</h3>
             
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "1rem" }}>
-              {QUICK_REPLIES.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => setNoteInput(q)}
-                  style={{ padding: "6px 12px", borderRadius: "20px", border: "1px solid #e2e8f0", cursor: "pointer", background: "#f8fafc", fontSize: "13px", color: "#64748b" }}
-                >
-                  {q}
+            {/* 🌟 HIDE INPUT PANELS IF TICKET IS RESOLVED */}
+            {!isResolved ? (
+              <>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "1rem" }}>
+                  {QUICK_REPLIES.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => setNoteInput(q)}
+                      style={{ padding: "6px 12px", borderRadius: "20px", border: "1px solid #e2e8f0", cursor: "pointer", background: "#f8fafc", fontSize: "13px", color: "#64748b" }}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows={3}
+                  value={noteInput}
+                  onChange={(e) => setNoteInput(e.target.value)}
+                  placeholder="Type internal notes (Only visible to admin staff)..."
+                  style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "12px", boxSizing: "border-box", fontFamily: "inherit", fontSize: "14px" }}
+                />
+
+                <button onClick={addNote} style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: "#2563eb", color: "#fff", cursor: "pointer", fontWeight: "600", marginBottom: "1rem" }}>
+                  Save Note
                 </button>
-              ))}
-            </div>
+              </>
+            ) : (
+              <p style={{ margin: "0 0 1rem 0", color: "#64748b", fontSize: "14px", fontStyle: "italic" }}>
+                🔒 This ticket is resolved. Adding internal documentation notes has been suspended.
+              </p>
+            )}
 
-            <textarea
-              rows={3}
-              value={noteInput}
-              onChange={(e) => setNoteInput(e.target.value)}
-              placeholder="Type internal notes (Only visible to admin staff)..."
-              style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "12px", boxSizing: "border-box", fontFamily: "inherit", fontSize: "14px" }}
-            />
-
-            <button onClick={addNote} style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: "#2563eb", color: "#fff", cursor: "pointer", fontWeight: "600" }}>
-              Save Note
-            </button>
-
+            {/* ALWAYS RENDER ENTIRE HISTORICAL NOTES LIST */}
             {ticket.notes?.length > 0 && (
-              <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: "10px", borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}>
+              <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "10px", borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}>
                 {ticket.notes.map((note, index) => (
                   <div key={index} style={{ padding: "14px", background: "#f8fafc", borderRadius: "10px", borderLeft: "4px solid #3b82f6" }}>
                     <p style={{ margin: "0 0 6px 0", color: "#334155", fontSize: "14px" }}>{note.text}</p>
@@ -268,22 +278,31 @@ export default function AdminTicketDetail() {
           <div style={{ background: "#fff", borderRadius: "16px", padding: "2rem", border: "1px solid #e2e8f0" }}>
             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#334155", marginTop: 0, marginBottom: "1rem" }}>Customer Communications</h3>
 
-            <textarea
-              rows={3}
-              value={msgInput}
-              onChange={(e) => setMsgInput(e.target.value)}
-              placeholder="Send message directly to the customer..."
-              style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "12px", boxSizing: "border-box", fontFamily: "inherit", fontSize: "14px" }}
-            />
+            {/* 🌟 HIDE COMMUNICATIONS DISPATCHER IF TICKET IS RESOLVED */}
+            {!isResolved ? (
+              <>
+                <textarea
+                  rows={3}
+                  value={msgInput}
+                  onChange={(e) => setMsgInput(e.target.value)}
+                  placeholder="Send message directly to the customer..."
+                  style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "12px", boxSizing: "border-box", fontFamily: "inherit", fontSize: "14px" }}
+                />
 
-            <button onClick={sendMessage} style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: "#7c3aed", color: "#fff", cursor: "pointer", fontWeight: "600" }}>
-              Send Message
-            </button>
+                <button onClick={sendMessage} style={{ padding: "10px 20px", borderRadius: "8px", border: "none", background: "#7c3aed", color: "#fff", cursor: "pointer", fontWeight: "600" }}>
+                  Send Message
+                </button>
+              </>
+            ) : (
+              <p style={{ margin: "0 0 1rem 0", color: "#64748b", fontSize: "14px", fontStyle: "italic" }}>
+                🔒 This ticket is resolved. Direct external customer dispatch features are deactivated.
+              </p>
+            )}
 
+            {/* ALWAYS RENDER COMPLETE MESSAGE DATA TIMELINE */}
             {ticket.messages?.length > 0 && (
               <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: "12px", borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}>
                 {ticket.messages.map((msg, index) => {
-                  // ✅ PERFECT SYMMETRY FIX: Admin messages pull to the right, Customer ('client'/'user') pulls left
                   const isAdmin = msg.sender === "admin";
                   return (
                     <div key={index} style={{ display: "flex", flexDirection: "column", alignItems: isAdmin ? "flex-end" : "flex-start" }}>

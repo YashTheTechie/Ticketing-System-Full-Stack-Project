@@ -7,6 +7,7 @@ import {
   updateTicketStatus,
   addNote,
   sendMessage,
+  getResolvedHistory, // ✅ imported the new history controller function
 } from "../controllers/ticketController.js";
 import { protect, verifyAdmin } from "../middleware/auth.js";
 
@@ -24,6 +25,10 @@ router.get("/my-tickets", protect, getMyTickets);
 
 // 👑 GET ALL TICKETS (ADMIN ONLY) -> GET /api/tickets/admin/all
 router.get("/admin/all", protect, verifyAdmin, getAllTickets);
+
+// ⏱️ GET RESOLVED TICKETS HISTORY (ADMIN ONLY) -> GET /api/tickets/history
+// ✅ MUST stay above /:id so Express doesn't treat "history" as a dynamic ticket ID parameter!
+router.get("/history", protect, verifyAdmin, getResolvedHistory);
 
 
 /* =============================================================

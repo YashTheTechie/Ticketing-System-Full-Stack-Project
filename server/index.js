@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth.js";
-import ticketRoutes from "./routes/ticketRoutes.js";
+import ticketRoutes from "./routes/ticketroutes.js"; // ✅ MATCHED: Changed to lowercase 'r' to match filename precisely
 
 dotenv.config();
 

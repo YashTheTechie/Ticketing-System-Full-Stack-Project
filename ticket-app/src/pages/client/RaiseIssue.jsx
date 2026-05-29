@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios"; // ⚡ Added Axios import
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom"; // ⚡ Added useLocation to read passed state
+import axios from "axios";
 
 const CATEGORIES = [
   "Network / Internet",
@@ -15,6 +15,7 @@ const CATEGORIES = [
 
 export default function RaiseIssue() {
   const navigate = useNavigate();
+  const location = useLocation(); // ⚡ Initialize location state listener
 
   const [form, setForm] = useState({
     category: "",
@@ -25,8 +26,18 @@ export default function RaiseIssue() {
 
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
-  const [serverTicketId, setServerTicketId] = useState(""); // ⚡ Store the REAL sequential ID returned from Atlas
+  const [serverTicketId, setServerTicketId] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // 🌟 NEW: Automatically capture and select the category passed from the Home page card
+  useEffect(() => {
+    if (location.state?.selectedCategory) {
+      setForm((prevForm) => ({
+        ...prevForm,
+        category: location.state.selectedCategory,
+      }));
+    }
+  }, [location.state]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -57,7 +68,6 @@ export default function RaiseIssue() {
         return;
       }
 
-      // ⚡ POST request sending form keys strictly matching backend validation properties
       const res = await axios.post(
         "http://localhost:5000/api/tickets",
         {
@@ -73,7 +83,6 @@ export default function RaiseIssue() {
         }
       );
 
-      // Save sequential tracking value emitted from Counter schema pipeline
       setServerTicketId(res.data.ticketNumber);
       setSubmitted(true);
     } catch (err) {
