@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-
-// ✅ Backend Base URL
-const API_URL = "";
+import axios from "axios"; // 👈 Added Axios import
 
 function AllTickets() {
   const navigate = useNavigate();
@@ -15,61 +13,28 @@ function AllTickets() {
   const [statusFilter, setStatusFilter] = useState("All Status");
 
   // ─────────────────────────────────────────────────────────────
-  // FETCH ALL TICKETS
+  // FETCH ALL TICKETS (REFACTORED TO AXIOS)
   // ─────────────────────────────────────────────────────────────
   const fetchTickets = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      // ✅ Get admin token
-      const token = localStorage.getItem("token");
+      // ✅ Axios inherits global interceptors, base URL contexts, and auth token headers instantly
+      const response = await axios.get("/api/tickets/admin/all");
 
-      if (!token) {
-        throw new Error("No admin token found. Please login again.");
-      }
-
-      // ✅ Fetch from backend
-      const response = await fetch(
-        `${API_URL}/api/tickets/admin/all`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      // ✅ Convert response to text first
-      const text = await response.text();
-      console.log("API RESPONSE:", text);
-
-      // ✅ Handle auth errors
-      if (response.status === 401) {
-        throw new Error("Unauthorized. Please login again.");
-      }
-
-      if (response.status === 403) {
-        throw new Error("Admin access required.");
-      }
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch tickets (${response.status})`);
-      }
-
-      // ✅ Parse JSON safely
-      const data = JSON.parse(text);
+      // ✅ Unpack database rows directly from response.data payload array
+      const data = response.data;
 
       // ✅ Normalize backend data
       const normalized = data.map((t) => ({
         id: t.ticketNumber || t._id,
-        dbId: t._id, // 🌟 ADDED: Keeps raw Mongo ID safe for navigation routing parameters
+        dbId: t._id, 
         customer: t.user?.name || "Unknown",
         email: t.user?.email || "—",
         issue: t.title || "No subject",
         priority: t.priority || "Medium",
-        status: t.status || "Open", // Pulls "Open", "In Progress", or "Resolved"
+        status: t.status || "Open", 
         date: t.createdAt
           ? new Date(t.createdAt).toLocaleDateString("en-IN", {
               day: "2-digit",
@@ -81,8 +46,9 @@ function AllTickets() {
 
       setTickets(normalized);
     } catch (err) {
-      console.error("Ticket Fetch Error:", err);
-      setError(err.message);
+      console.error("Ticket Fetch Error:", err.response?.data || err.message);
+      // ✅ Pull descriptive string errors right out of your server catches
+      setError(err.response?.data?.message || err.message || "Failed to load dashboard data.");
     } finally {
       setLoading(false);
     }
@@ -122,7 +88,7 @@ function AllTickets() {
           minHeight: "100vh",
           display: "flex",
           alignItems: "center",
-          justify: "center",
+          justifyContent: "center",
           flexDirection: "column",
           gap: "16px",
         }}
@@ -138,12 +104,7 @@ function AllTickets() {
           }}
         />
 
-        <p
-          style={{
-            color: "#6b7280",
-            fontSize: "16px",
-          }}
-        >
+        <p style={{ color: "#6b7280", fontSize: "16px" }}>
           Loading tickets...
         </p>
 
@@ -171,7 +132,7 @@ function AllTickets() {
           minHeight: "100vh",
           display: "flex",
           alignItems: "center",
-          justify: "center",
+          justifyContent: "center",
           flexDirection: "column",
           gap: "16px",
         }}
@@ -306,7 +267,7 @@ function AllTickets() {
           <option>All Status</option>
           <option>Open</option>
           <option>In Progress</option>
-          <option>Resolved</option> {/* ✅ MATCHED: Swapped "Closed" for database literal "Resolved" */}
+          <option>Resolved</option>
         </select>
       </div>
 
@@ -339,9 +300,8 @@ function AllTickets() {
         </div>
 
         <div style={{ background: "#dcfce7", padding: "22px", borderRadius: "18px" }}>
-          <h3>Resolved</h3> {/* ✅ LABELED CONSISTENTLY */}
+          <h3>Resolved</h3>
           <h1 style={{ color: "#16a34a" }}>
-            {/* 🌟 FIX: Inspects database specific enum array properties correctly */}
             {tickets.filter((t) => t.status === "Resolved").length}
           </h1>
         </div>
@@ -460,7 +420,6 @@ function AllTickets() {
                     {ticket.date}
                   </td>
 
-                  {/* ✅ SAFED WORKSPACE VIEW INTERSECTION REDIRECT */}
                   <td style={tableCell}>
                     <button
                       onClick={() => navigate(`/admin/ticket/${ticket.dbId || ticket.id}`)}
