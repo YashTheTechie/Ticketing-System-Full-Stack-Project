@@ -1,7 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import User from "../models/User.js";
 
 const router = express.Router();
@@ -136,29 +136,12 @@ router.post("/admin/login", async (req, res) => {
     console.log(`\n👑 GENERATED OTP: ${otpCode}\n`);
 
     // ==========================================
-// 📧 NODEMAILER TRANSPORTER (BULLETPROOF SETUP)
-// ==========================================
-// ==========================================
-// 📧 NODEMAILER TRANSPORTER (CLOUD BULLETPROOF SETUP)
-// ==========================================
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // Must be false for port 587
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false // Bypasses cloud SSL handshake restrictions
-  }
-});
+    // 📧 RESEND EMAIL (No SMTP - Works on Render)
+    // ==========================================
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // ==========================================
-    // 📩 SEND OTP EMAIL
-    // ==========================================
-    await transporter.sendMail({
-      from: `"SupportDesk Admin" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
       to: email,
       subject: "Your Admin Login OTP",
       html: `
@@ -236,6 +219,10 @@ router.post("/admin/verify-otp", async (req, res) => {
     const user = await User.findOne({
       email: email.toLowerCase()
     });
+
+    if (!user) {
+      return res.status(404).json({ message: "Admin user not found." });
+    }
 
     // Generate JWT token
     const token = jwt.sign(
