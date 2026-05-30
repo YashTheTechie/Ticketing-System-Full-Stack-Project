@@ -27,8 +27,6 @@ export default function AdminTicketDetail() {
   const [msgInput, setMsgInput] = useState("");
   const [error, setError] = useState(null);
 
-  const token = localStorage.getItem("token");
-
   useEffect(() => {
     if (id) {
       fetchTicket();
@@ -38,9 +36,7 @@ export default function AdminTicketDetail() {
   const fetchTicket = async () => {
     try {
       setError(null);
-      const res = await axios.get(`/api/tickets/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.get(`/api/tickets/${id}`);
       setTicket(res.data);
       setStatus(res.data.status);
     } catch (error) {
@@ -51,46 +47,33 @@ export default function AdminTicketDetail() {
 
   const handleStatusChange = async (newStatus) => {
     try {
-      await axios.put(
-        `/api/tickets/${id}/status`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setStatus(newStatus);
-      fetchTicket();
+      const res = await axios.put(`/api/tickets/${id}/status`, { status: newStatus });
+      setTicket(res.data);
+      setStatus(res.data.status);
     } catch (error) {
       console.error("Error updating status:", error.response?.data || error.message);
+      alert(`Status Update Failed: ${error.response?.data?.message || error.message}`);
     }
   };
 
   const addNote = async () => {
     if (!noteInput.trim()) return;
     try {
-      await axios.post(
-        `/api/tickets/${id}/note`,
-        { text: noteInput.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await axios.post(`/api/tickets/${id}/note`, { text: noteInput.trim() });
+      setTicket(prev => ({ ...prev, notes: res.data }));
       setNoteInput("");
-      fetchTicket();
     } catch (error) {
       console.error("Error adding note:", error.response?.data || error.message);
+      alert(`Failed to save note: ${error.response?.data?.message || error.message}`);
     }
   };
 
   const sendMessage = async () => {
     if (!msgInput.trim()) return;
     try {
-      await axios.post(
-        `/api/tickets/${id}/message`,
-        { 
-          text: msgInput.trim(), 
-          sender: "admin"
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await axios.post(`/api/tickets/${id}/message`, { text: msgInput.trim() });
+      setTicket(prev => ({ ...prev, messages: res.data }));
       setMsgInput("");
-      fetchTicket();
     } catch (error) {
       console.error("Error sending message:", error.response?.data || error.message);
       alert(`Failed to send message: ${error.response?.data?.message || error.message}`);
@@ -228,7 +211,6 @@ export default function AdminTicketDetail() {
           <div style={{ background: "#fff", borderRadius: "16px", padding: "2rem", border: "1px solid #e2e8f0" }}>
             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#334155", marginTop: 0, marginBottom: "1rem" }}>Internal Admin Notes</h3>
             
-            {/* 🌟 HIDE INPUT PANELS IF TICKET IS RESOLVED */}
             {!isResolved ? (
               <>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "1rem" }}>
@@ -261,7 +243,6 @@ export default function AdminTicketDetail() {
               </p>
             )}
 
-            {/* ALWAYS RENDER ENTIRE HISTORICAL NOTES LIST */}
             {ticket.notes?.length > 0 && (
               <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "10px", borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}>
                 {ticket.notes.map((note, index) => (
@@ -278,7 +259,6 @@ export default function AdminTicketDetail() {
           <div style={{ background: "#fff", borderRadius: "16px", padding: "2rem", border: "1px solid #e2e8f0" }}>
             <h3 style={{ fontSize: "16px", fontWeight: "600", color: "#334155", marginTop: 0, marginBottom: "1rem" }}>Customer Communications</h3>
 
-            {/* 🌟 HIDE COMMUNICATIONS DISPATCHER IF TICKET IS RESOLVED */}
             {!isResolved ? (
               <>
                 <textarea
@@ -299,7 +279,6 @@ export default function AdminTicketDetail() {
               </p>
             )}
 
-            {/* ALWAYS RENDER COMPLETE MESSAGE DATA TIMELINE */}
             {ticket.messages?.length > 0 && (
               <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: "12px", borderTop: "1px solid #f1f5f9", paddingTop: "1.5rem" }}>
                 {ticket.messages.map((msg, index) => {
